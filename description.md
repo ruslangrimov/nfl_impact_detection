@@ -4,7 +4,7 @@ The videos were split into fragments of shape **8х224х224х3**. As positive ex
 ## Models
 From the very start, I used 3D CNN, namely **I3D** from [SlowFast](https://github.com/facebookresearch/SlowFast). The one change I made to it was adding the fourth channel in input, which was always equal one for the fifth frame (don't know whether it had any sense or not). This is the fifth frame that the model predicts bboxes for. Then I appended FPN from [pytorch_segmentation](https://github.com/qubvel/segmentation_models.pytorch) with six output channels without upsampling.
 
-The 3d feature maps from second to fifth blocks of the backbone net were converted to 2d feature maps using `F.adaptive_avg_pool3d` and then passed to FPN. 
+The 3d feature maps from second to fifth blocks of the backbone net were converted to 2d feature maps using `F.adaptive_avg_pool3d` and then passed to FPN.
 
 The FPN produced a grid of size 6x56x56. The first channel of the grid was responsible for the presence of a bbox in a particular cell of the grid. The next four channels were responsible for the position of the bbox inside a grid cell and the bbox size. The last channel predicted the presence of impact in a cell. All these predictions were made only for the fifth frame in the sequence of eight frames. Overall this grid resembles yolo output except for anchors.
 
@@ -46,6 +46,7 @@ For each epoch, I chose all the positive examples and **positive_count*2** negat
 **The ensemble of four such models** got score **0.48** on my local validation.
 Then I noticed that the detection of helmet centers worked not well. It was often mistaken a shoulder protector (I don't know what exactly this thing is called) for a helmet and gave it more confidence than it gave for some helmets.
 I assumed that it was because the ground truth data for bbox centers contained only points and those points were not always located in the centers of helmets so it was difficult for a model to understand where it should output points. So instead of points in the centers of bboxes I decided to predict circles with diameters equal to the average between a bbox's width and height. These circles were fading towards their boundaries. As it is shown in the picture.
+
 ![Helmets' circles](./assets/helmet_circles.png)
 
 I trained standalone **FPN with resnet34 as backbone** on single 224x224x3 patches and these circles as ground truth. Also, I used `nn.BCEWithLogitsLoss` as a loss (yes, you can use it for a regression task). Using such a model for predicting bboxes' centers gave a significant boost to the score, up to **0.58** on local validation.
@@ -53,7 +54,7 @@ I trained standalone **FPN with resnet34 as backbone** on single 224x224x3 patch
 ## Predicting
 There was an ensemble of **four models based on I3D**, which had been trained using different configurations, and an **ensemble of two FPN-resnet34** models for predicting bbox centers. The predictions from the models would be averaged. Including bbox positions and sizes.
 
-For each frame in a video, I got four previous frames and three next and concatenated them into a sequence. Then I padded the image to 736x1280.  
+For each frame in a video, I got four previous frames and three next and concatenated them into a sequence. Then I padded the image to 736x1280.
 
 So the input for I3D models had the size of **3x8x736x1280** and output had the size of **6x184x320**. As input for FPN-resnet34 models I used one current frame and the output of these models was **1х736х1280**, which was downsampled to 184x320. Also for predicting helmet centers I used **TTA** **scaling an image to \[0.75, 1.0, 1.25, 1.5\]** and averaging predicted values with weights \[0.3, 1.0, 0.3, 0.15\] accordingly.
 Using predictions from FPN-resnet34 models for bbox centers and predictions from I3D for bbox sizes and impacts I made a list of helmets that had scores above **0.4**. Then I applied **non-maximum suppression** with parameter **0.25** to that list to get the final list of bboxes for a frame. Those bboxes that had in their center confidence of impact above **0.45** were marked as positive.
