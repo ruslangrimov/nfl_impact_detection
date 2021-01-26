@@ -1,0 +1,10 @@
+{
+    "RAW_DATA_DIR": "/mnt/SSDData/AF/",
+    "TRAIN_PREPARED_DATA_PATH": "/mnt/SSDData/AF_prepared/",
+    "TEST_DATA_PATH": "/mnt/SSDData/AF_prepared/fold0_test/",
+    "CHECKPOINT_DIR": "./checkpoints/",
+    "MODEL_DIR": "./models/",
+    "LOGS_DIR": "./logs/",
+    "SUBMISSION_DIR": "./submissions/",
+    "TEMP_DIR": "./tmp/"
+}
