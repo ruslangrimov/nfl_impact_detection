@@ -1,7 +1,4 @@
-Hello!
-
 Below you can find a outline of how to reproduce my solution for the "NFL 1st and Future - Impact Detection" competition.
-If you run into any trouble with the setup/code or have any questions please contact me at grimovr@gmail.com
 
 # ARCHIVE CONTENTS
 lib	: core source code
